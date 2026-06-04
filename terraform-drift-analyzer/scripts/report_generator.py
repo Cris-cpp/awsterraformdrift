@@ -45,15 +45,8 @@ def _truncate_id(rid, max_len=50):
     return rid or ""
 
 
-def _get_aws_id(config):
-    if not config:
-        return ""
-    return _truncate_id(
-        config.get("id")
-        or config.get("InstanceId")
-        or config.get("GroupId")
-        or ""
-    )
+def _get_aws_id(finding):
+    return _truncate_id(finding.get("aws_id", ""))
 
 
 def build_report(diff_json, mmd_content):
@@ -103,7 +96,7 @@ def build_report(diff_json, mmd_content):
                 elif f["status"] == "missing":
                     lines.append(f"- {icon} {name} — missing in AWS")
                 elif f["status"] == "mismatched":
-                    aws_id = _get_aws_id(f.get("actual"))
+                    aws_id = _get_aws_id(f)
                     id_str = f" ({aws_id})" if aws_id else ""
                     drift_details = ", ".join(
                         f"{field}: declared `{(f['declared'] or {}).get(field)}`, actual `{(f['actual'] or {}).get(field)}`"
@@ -126,7 +119,7 @@ def build_report(diff_json, mmd_content):
             label = SECTION_LABELS.get(rtype, rtype)
             for f in by_type_u[rtype]:
                 name = _escape_md(f["resource_name"])
-                aws_id = _get_aws_id(f.get("actual"))
+                aws_id = _get_aws_id(f)
                 id_str = f" ({aws_id})" if aws_id else ""
                 lines.append(f"- 🔍 {label}: {name}{id_str}")
         lines.append("")

@@ -115,3 +115,22 @@ class TestDriftDetector:
             assert "declared" in f
             assert "actual" in f
             assert "drift_fields" in f
+
+    def test_terraform_resource_tag_fallback_matching(self):
+        declared = {"resources": [
+            {"type": "aws_instance", "name": "web_server", "config": {"instance_type": "t3.micro", "ami": "ami-1", "tags": {"Name": "web_server"}}}
+        ], "modules": []}
+        # AWS resource has NO Name tag matching "web_server", but has terraform:resource tag
+        actual = {"resources": [
+            {"type": "aws_instance", "id": "i-fallback", "name": "i-fallback", "config": {
+                "instance_type": "t3.micro", "ami": "ami-1", "state": "running",
+                "tags": {"terraform:resource": "aws_instance.web_server"}
+            }}
+        ]}
+        result = detect_drift(declared, actual)
+        findings = result["findings"]
+        # Should be matched via fallback, not missing + unmanaged
+        assert len([f for f in findings if f["status"] == "missing"]) == 0
+        assert len([f for f in findings if f["status"] == "unmanaged"]) == 0
+        web = next(f for f in findings if f["resource_name"] == "web_server")
+        assert web["status"] in ("matched", "mismatched")

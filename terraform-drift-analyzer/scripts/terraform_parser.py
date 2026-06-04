@@ -21,7 +21,7 @@ RESOURCE_FIELDS = {
     "aws_s3_bucket": ["bucket", "acl", "tags"],
     "aws_iam_role": ["name", "assume_role_policy", "managed_policy_arns", "tags"],
     "aws_iam_user": ["name", "path", "tags"],
-    "aws_iam_policy": ["name", "description", "policy", "tags"],
+    "aws_iam_policy": ["name", "description", "policy_document", "tags"],
     "aws_security_group": ["name", "description", "ingress", "egress", "tags"],
 }
 
@@ -83,6 +83,9 @@ def parse_tf_directory(directory):
                             for field in RESOURCE_FIELDS.get(res_type, []):
                                 if field not in normalized:
                                     normalized[field] = None
+                            # Remap HCL 'policy' attribute to 'policy_document' for aws_iam_policy
+                            if res_type == "aws_iam_policy" and "policy" in normalized and "policy_document" not in normalized:
+                                normalized["policy_document"] = normalized.pop("policy")
                             resources.append(
                                 {
                                     "type": res_type,

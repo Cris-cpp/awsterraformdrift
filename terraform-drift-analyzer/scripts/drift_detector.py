@@ -49,17 +49,44 @@ def compare_resources(t_json, a_json):
     declared = t_json.get("resources", [])
     actual = a_json.get("resources", [])
 
+    # Primary index: match by (type, AWS Name tag / resource name)
     actual_by_name = {}
     for r in actual:
         key = (r["type"], r["name"])
         actual_by_name.setdefault(key, []).append(r)
 
+    # Fallback index: match by terraform:resource tag (format: "aws_instance.web_server")
+    actual_by_tf_tag = {}
+    for r in actual:
+        tags = (r.get("config") or {}).get("tags") or {}
+        tf_tag = tags.get("terraform:resource")
+        if tf_tag:
+            actual_by_tf_tag[tf_tag] = r
+
     declared_keys = {(r["type"], r["name"]) for r in declared}
+
+    # Track actual resources claimed via fallback tag matching
+    claimed_actual_names = set()
+    for d in declared:
+        key = (d["type"], d["name"])
+        if not actual_by_name.get(key):
+            tf_tag_key = f"{d['type']}.{d['name']}"
+            fallback = actual_by_tf_tag.get(tf_tag_key)
+            if fallback:
+                claimed_actual_names.add((fallback["type"], fallback["name"]))
+
     findings = []
 
     for d in declared:
         key = (d["type"], d["name"])
         matches = actual_by_name.get(key, [])
+
+        # Fallback: check terraform:resource tag when no Name-tag match found
+        if not matches:
+            tf_tag_key = f"{d['type']}.{d['name']}"
+            fallback = actual_by_tf_tag.get(tf_tag_key)
+            if fallback:
+                matches = [fallback]
 
         if not matches:
             findings.append({
@@ -80,18 +107,20 @@ def compare_resources(t_json, a_json):
                 "status": status,
                 "declared": d.get("config", {}),
                 "actual": a.get("config", {}),
+                "aws_id": a.get("id", ""),
                 "drift_fields": drift_fields,
             })
 
     for a in actual:
         key = (a["type"], a["name"])
-        if key not in declared_keys:
+        if key not in declared_keys and key not in claimed_actual_names:
             findings.append({
                 "resource_type": a["type"],
                 "resource_name": a["name"],
                 "status": "unmanaged",
                 "declared": None,
                 "actual": a.get("config", {}),
+                "aws_id": a.get("id", ""),
                 "drift_fields": [],
             })
 
