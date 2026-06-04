@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -25,6 +26,13 @@ RESOURCE_FIELDS = {
 }
 
 WORKSPACE = "./drift-workspace"
+
+LIST_FIELDS = {"ingress", "egress", "vpc_security_group_ids", "security_groups", "managed_policy_arns", "cidr_blocks"}
+
+
+def _mermaid_id(res_type, res_name):
+    raw = f"{res_type}_{res_name}"
+    return re.sub(r'[^a-zA-Z0-9_]', '_', raw)
 
 
 def _strip_quotes(s):
@@ -64,10 +72,13 @@ def parse_tf_directory(directory):
                             key = (res_type, res_name)
                             if key in seen:
                                 print(
-                                    f"WARNING: Duplicate resource {res_type}.{res_name} in {tf_file}, using first occurrence."
+                                    f"WARNING: Duplicate resource {res_type}.{res_name} in {tf_file}, using first occurrence.",
+                                    file=sys.stderr,
                                 )
                                 continue
                             seen.add(key)
+                            if isinstance(res_config, list) and len(res_config) == 1 and isinstance(res_config[0], dict):
+                                res_config = res_config[0]
                             normalized = _normalize_config(res_config)
                             for field in RESOURCE_FIELDS.get(res_type, []):
                                 if field not in normalized:
@@ -96,7 +107,7 @@ def parse_tf_directory(directory):
     return {"resources": resources, "modules": modules}
 
 
-def _normalize_config(config):
+def _normalize_config(config, _depth=0):
     if not isinstance(config, dict):
         return config
     result = {}
@@ -110,15 +121,15 @@ def _normalize_config(config):
                 result[k] = {"value": f"<variable: {v_stripped}>", "type": "unresolved"}
             else:
                 result[k] = v_stripped
-        elif isinstance(v, list) and len(v) == 1 and isinstance(v[0], dict):
-            result[k] = _normalize_config(v[0])
+        elif isinstance(v, list) and len(v) == 1 and isinstance(v[0], dict) and k not in LIST_FIELDS:
+            result[k] = _normalize_config(v[0], _depth + 1)
         elif isinstance(v, list):
             result[k] = [
-                _normalize_config(i) if isinstance(i, dict) else (_strip_quotes(i) if isinstance(i, str) else i)
+                _normalize_config(i, _depth + 1) if isinstance(i, dict) else (_strip_quotes(i) if isinstance(i, str) else i)
                 for i in v
             ]
         elif isinstance(v, dict):
-            result[k] = _normalize_config(v)
+            result[k] = _normalize_config(v, _depth + 1)
         else:
             result[k] = v
     return result
@@ -138,7 +149,7 @@ def generate_mermaid(parsed):
     }
 
     for r in parsed["resources"]:
-        node_id = f"{r['type']}_{r['name']}"
+        node_id = _mermaid_id(r['type'], r['name'])
         label = f"{short_type.get(r['type'], r['type'])}: {r['name']}"
         node_ids[(r["type"], r["name"])] = node_id
         lines.append(f"  {node_id}[{label}]")
@@ -168,9 +179,11 @@ def _maybe_add_edge(lines, node_ids, src_id, ref, target_type):
     if not isinstance(ref, str):
         return
     for (rtype, rname), node_id in node_ids.items():
-        if rtype == target_type and rname in ref:
-            lines.append(f"  {src_id} --> {node_id}")
-            return
+        if rtype == target_type:
+            # Match canonical reference: aws_security_group.allow_web.id or similar
+            if f"{rtype}.{rname}." in ref or f"{rtype}.{rname}" == ref:
+                lines.append(f"  {src_id} --> {node_id}")
+                return
 
 
 def main():
