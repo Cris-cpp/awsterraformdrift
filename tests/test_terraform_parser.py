@@ -91,3 +91,16 @@ resource "aws_instance" "dup" {
         instances = [r for r in result["resources"] if r["type"] == "aws_instance"]
         assert len(instances) == 1
         assert instances[0]["config"]["instance_type"] == "t3.micro"
+
+    def test_missing_optional_fields_are_null(self, tmp_path):
+        (tmp_path / "main.tf").write_text('''
+resource "aws_instance" "minimal" {
+  instance_type = "t3.micro"
+  ami = "ami-111"
+}
+''')
+        result = parse_terraform(str(tmp_path))
+        instance = next(r for r in result["resources"] if r["name"] == "minimal")
+        # tags is optional and not declared — should be null, not missing
+        assert "tags" in instance["config"]
+        assert instance["config"]["tags"] is None

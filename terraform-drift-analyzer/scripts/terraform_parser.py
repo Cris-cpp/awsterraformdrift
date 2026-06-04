@@ -15,6 +15,15 @@ SUPPORTED_TYPES = {
     "aws_security_group",
 }
 
+RESOURCE_FIELDS = {
+    "aws_instance": ["instance_type", "ami", "key_name", "subnet_id", "tags"],
+    "aws_s3_bucket": ["bucket", "acl", "tags"],
+    "aws_iam_role": ["name", "assume_role_policy", "managed_policy_arns", "tags"],
+    "aws_iam_user": ["name", "path", "tags"],
+    "aws_iam_policy": ["name", "description", "policy", "tags"],
+    "aws_security_group": ["name", "description", "ingress", "egress", "tags"],
+}
+
 WORKSPACE = "./drift-workspace"
 
 
@@ -59,11 +68,15 @@ def parse_tf_directory(directory):
                                 )
                                 continue
                             seen.add(key)
+                            normalized = _normalize_config(res_config)
+                            for field in RESOURCE_FIELDS.get(res_type, []):
+                                if field not in normalized:
+                                    normalized[field] = None
                             resources.append(
                                 {
                                     "type": res_type,
                                     "name": res_name,
-                                    "config": _normalize_config(res_config),
+                                    "config": normalized,
                                 }
                             )
 
