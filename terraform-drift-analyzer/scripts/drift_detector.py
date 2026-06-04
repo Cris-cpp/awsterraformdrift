@@ -66,7 +66,7 @@ def compare_resources(t_json, a_json):
                 "resource_type": d["type"],
                 "resource_name": d["name"],
                 "status": "missing",
-                "declared": d["config"],
+                "declared": d.get("config", {}),
                 "actual": None,
                 "drift_fields": [],
             })
@@ -78,8 +78,8 @@ def compare_resources(t_json, a_json):
                 "resource_type": d["type"],
                 "resource_name": d["name"],
                 "status": status,
-                "declared": d["config"],
-                "actual": a["config"],
+                "declared": d.get("config", {}),
+                "actual": a.get("config", {}),
                 "drift_fields": drift_fields,
             })
 

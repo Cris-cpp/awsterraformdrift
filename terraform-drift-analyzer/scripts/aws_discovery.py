@@ -52,98 +52,105 @@ def _tags_list_to_dict(tags_list):
         return {}
     if isinstance(tags_list, dict):
         return tags_list
-    return {t["Key"]: t["Value"] for t in tags_list if "Key" in t}
+    return {t["Key"]: t.get("Value", "") for t in tags_list if "Key" in t}
 
 
 def normalize_mcp_response(t_json, mcp_data):
+    present_types = {r["type"] for r in t_json.get("resources", [])}
     resources = []
 
-    for item in mcp_data.get("aws_instance", []):
-        tags = _tags_list_to_dict(item.get("Tags", []))
-        name = tags.get("Name") or item.get("InstanceId")
-        resources.append({
-            "type": "aws_instance",
-            "id": item.get("InstanceId"),
-            "name": name,
-            "config": {
-                "instance_type": item.get("InstanceType"),
-                "ami": item.get("ImageId"),
-                "state": item.get("State", {}).get("Name"),
-                "tags": tags,
-            },
-        })
+    if "aws_instance" in present_types:
+        for item in mcp_data.get("aws_instance", []):
+            tags = _tags_list_to_dict(item.get("Tags", []))
+            name = tags.get("Name") or item.get("InstanceId")
+            resources.append({
+                "type": "aws_instance",
+                "id": item.get("InstanceId"),
+                "name": name,
+                "config": {
+                    "instance_type": item.get("InstanceType"),
+                    "ami": item.get("ImageId"),
+                    "state": item.get("State", {}).get("Name"),
+                    "tags": tags,
+                },
+            })
 
-    for item in mcp_data.get("aws_s3_bucket", []):
-        tags = _tags_list_to_dict(item.get("Tags", []))
-        bucket_name = item.get("Name") or item.get("name")
-        name = tags.get("Name") or bucket_name
-        resources.append({
-            "type": "aws_s3_bucket",
-            "id": bucket_name,
-            "name": name,
-            "config": {
-                "bucket": bucket_name,
-                "tags": tags,
-            },
-        })
+    if "aws_s3_bucket" in present_types:
+        for item in mcp_data.get("aws_s3_bucket", []):
+            tags = _tags_list_to_dict(item.get("Tags", []))
+            bucket_name = item.get("Name") or item.get("name")
+            name = tags.get("Name") or bucket_name
+            resources.append({
+                "type": "aws_s3_bucket",
+                "id": bucket_name,
+                "name": name,
+                "config": {
+                    "bucket": bucket_name,
+                    "tags": tags,
+                },
+            })
 
-    for item in mcp_data.get("aws_iam_role", []):
-        tags = _tags_list_to_dict(item.get("Tags", []))
-        role_name = item.get("RoleName")
-        name = tags.get("Name") or role_name
-        resources.append({
-            "type": "aws_iam_role",
-            "id": item.get("RoleId", role_name),
-            "name": name,
-            "config": {
-                "assume_role_policy": item.get("AssumeRolePolicyDocument"),
-                "tags": tags,
-            },
-        })
+    if "aws_iam_role" in present_types:
+        for item in mcp_data.get("aws_iam_role", []):
+            tags = _tags_list_to_dict(item.get("Tags", []))
+            role_name = item.get("RoleName")
+            name = tags.get("Name") or role_name
+            resources.append({
+                "type": "aws_iam_role",
+                "id": item.get("RoleId", role_name),
+                "name": name,
+                "config": {
+                    "assume_role_policy": item.get("AssumeRolePolicyDocument"),
+                    "tags": tags,
+                },
+            })
 
-    for item in mcp_data.get("aws_iam_user", []):
-        tags = _tags_list_to_dict(item.get("Tags", []))
-        user_name = item.get("UserName")
-        name = tags.get("Name") or user_name
-        resources.append({
-            "type": "aws_iam_user",
-            "id": item.get("UserId", user_name),
-            "name": name,
-            "config": {
-                "path": item.get("Path"),
-                "tags": tags,
-            },
-        })
+    if "aws_iam_user" in present_types:
+        for item in mcp_data.get("aws_iam_user", []):
+            tags = _tags_list_to_dict(item.get("Tags", []))
+            user_name = item.get("UserName")
+            name = tags.get("Name") or user_name
+            resources.append({
+                "type": "aws_iam_user",
+                "id": item.get("UserId", user_name),
+                "name": name,
+                "config": {
+                    "path": item.get("Path"),
+                    "tags": tags,
+                },
+            })
 
-    for item in mcp_data.get("aws_iam_policy", []):
-        tags = _tags_list_to_dict(item.get("Tags", []))
-        policy_name = item.get("PolicyName")
-        name = tags.get("Name") or policy_name
-        resources.append({
-            "type": "aws_iam_policy",
-            "id": item.get("PolicyId", policy_name),
-            "name": name,
-            "config": {
-                "policy_document": item.get("PolicyDocument"),
-                "tags": tags,
-            },
-        })
+    if "aws_iam_policy" in present_types:
+        for item in mcp_data.get("aws_iam_policy", []):
+            tags = _tags_list_to_dict(item.get("Tags", []))
+            policy_name = item.get("PolicyName")
+            name = tags.get("Name") or policy_name
+            resources.append({
+                "type": "aws_iam_policy",
+                "id": item.get("PolicyId", policy_name),
+                "name": name,
+                "config": {
+                    "policy_document": item.get("PolicyDocument"),
+                    "tags": tags,
+                },
+            })
 
-    for item in mcp_data.get("aws_security_group", []):
-        tags = _tags_list_to_dict(item.get("Tags", []))
-        name = tags.get("Name") or item.get("GroupName")
-        resources.append({
-            "type": "aws_security_group",
-            "id": item.get("GroupId"),
-            "name": name,
-            "config": {
-                "name": item.get("GroupName"),
-                "description": item.get("Description"),
-                "ingress": item.get("IpPermissions", []),
-                "egress": item.get("IpPermissionsEgress", []),
-                "tags": tags,
-            },
-        })
+    if "aws_security_group" in present_types:
+        for item in mcp_data.get("aws_security_group", []):
+            tags = _tags_list_to_dict(item.get("Tags", []))
+            name = tags.get("Name") or item.get("GroupName")
+            resources.append({
+                "type": "aws_security_group",
+                "id": item.get("GroupId"),
+                "name": name,
+                "config": {
+                    "name": item.get("GroupName"),
+                    "description": item.get("Description"),
+                    "ingress": item.get("IpPermissions", []),
+                    "egress": item.get("IpPermissionsEgress", []),
+                    "tags": tags,
+                },
+            })
 
     return {"resources": resources}
 
@@ -177,6 +184,10 @@ def main():
         print(json.dumps(plan, indent=2))
 
     elif args.command == "normalize":
+        if not t_json.get("resources"):
+            print("ERROR: No resources found in T.json", file=sys.stderr)
+            sys.exit(1)
+
         try:
             with open(args.mcp_response) as f:
                 mcp_data = json.load(f)

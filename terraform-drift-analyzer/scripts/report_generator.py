@@ -33,6 +33,7 @@ STATUS_ICONS = {
 
 
 def _escape_md(s):
+    s = str(s)  # guard against non-string resource names
     for ch in ["\\", "`", "[", "]", "*"]:
         s = s.replace(ch, f"\\{ch}")
     return s
