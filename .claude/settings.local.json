@@ -14,7 +14,10 @@
       "Bash(python3 -m pytest tests/test_drift_detector.py -v)",
       "Bash(python3 -m pytest tests/ -v)",
       "Bash(python3 -m pytest tests/ -v --tb=short)",
-      "Bash(python3 terraform-drift-analyzer/scripts/terraform_parser.py tests/fixtures/simple)"
+      "Bash(python3 terraform-drift-analyzer/scripts/terraform_parser.py tests/fixtures/simple)",
+      "Bash(python3 /Users/sarthak.joshi/Desktop/files/terraform-drift-analyzer/scripts/drift_detector.py --help)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(python3 /Users/sarthak.joshi/Desktop/files/terraform-drift-analyzer/scripts/report_generator.py --help)"
     ],
     "additionalDirectories": [
       "/Users/sarthak.joshi/Desktop/files/terraform-drift-analyzer"

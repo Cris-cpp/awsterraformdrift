@@ -11,7 +11,7 @@ COMPARE_FIELDS = {
     "aws_iam_role": ["assume_role_policy", "tags"],
     "aws_iam_user": ["path", "tags"],
     "aws_iam_policy": ["policy_document", "tags"],
-    "aws_security_group": ["ingress", "egress", "tags"],
+    "aws_security_group": ["tags"],  # ingress/egress skipped: AWS API format differs from HCL
 }
 
 

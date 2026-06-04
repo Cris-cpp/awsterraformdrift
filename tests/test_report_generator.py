@@ -74,3 +74,20 @@ class TestReportGenerator:
     def test_no_s3_section_when_no_s3_findings(self):
         report = generate_report(SAMPLE_DIFF, SAMPLE_MMD)
         assert "### S3 Buckets" not in report
+
+    def test_mismatched_tag_shows_values(self):
+        diff = {
+            "summary": {"total_declared": 1, "total_found": 1, "total_missing": 0, "total_unmanaged": 0, "total_mismatched": 1},
+            "findings": [{
+                "resource_type": "aws_instance",
+                "resource_name": "web",
+                "status": "mismatched",
+                "declared": {"instance_type": "t3.micro", "tags": {"Env": "prod"}},
+                "actual": {"instance_type": "t3.micro", "tags": {"Env": "staging"}},
+                "aws_id": "i-001",
+                "drift_fields": ["tags.Env"],
+            }],
+        }
+        report = generate_report(diff, "graph TD")
+        assert "prod" in report
+        assert "staging" in report

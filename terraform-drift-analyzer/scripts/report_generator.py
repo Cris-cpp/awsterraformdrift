@@ -32,6 +32,15 @@ STATUS_ICONS = {
 }
 
 
+def _get_field_val(config, field):
+    if config is None:
+        return None
+    parts = field.split(".", 1)
+    if len(parts) == 2:
+        return (config.get(parts[0]) or {}).get(parts[1])
+    return config.get(field)
+
+
 def _escape_md(s):
     s = str(s)  # guard against non-string resource names
     for ch in ["\\", "`", "[", "]", "*"]:
@@ -99,7 +108,7 @@ def build_report(diff_json, mmd_content):
                     aws_id = _get_aws_id(f)
                     id_str = f" ({aws_id})" if aws_id else ""
                     drift_details = ", ".join(
-                        f"{field}: declared `{(f['declared'] or {}).get(field)}`, actual `{(f['actual'] or {}).get(field)}`"
+                        f"{field}: declared `{_get_field_val(f.get('declared'), field)}`, actual `{_get_field_val(f.get('actual'), field)}`"
                         for field in f.get("drift_fields", [])
                     )
                     lines.append(f"- {icon} {name}{id_str} — mismatched ({drift_details})")
