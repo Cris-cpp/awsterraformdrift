@@ -8,5 +8,6 @@
   },
   "license": "MIT",
   "keywords": ["terraform", "aws", "drift", "infrastructure", "devops"],
-  "skills": ["terraform-drift-analyzer"]
+  "skills": ["skills/terraform-drift-analyzer"],
+  "repository": "https://github.com/sarthak-joshi/terraform-drift-analyzer"
 }

@@ -36,14 +36,14 @@ Compares what you've declared in Terraform against what actually exists in AWS a
 
 Copy the skill folder into your Claude skills directory:
 ```bash
-cp -r terraform-drift-analyzer ~/.claude/skills/
+cp -r skills/terraform-drift-analyzer ~/.claude/skills/
 ```
 
 ### Project-Level
 
 Copy into your project's Claude skills directory:
 ```bash
-cp -r terraform-drift-analyzer .claude/skills/
+cp -r skills/terraform-drift-analyzer .claude/skills/
 ```
 
 ### Verify Installation
