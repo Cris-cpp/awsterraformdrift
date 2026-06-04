@@ -7,3 +7,6 @@ venv/
 .env
 .DS_Store
 report.md
+.pytest_cache/
+.claude/settings.local.json
+docs/superpowers/
