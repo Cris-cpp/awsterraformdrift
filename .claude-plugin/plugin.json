@@ -1,0 +1,12 @@
+{
+  "name": "terraform-drift-analyzer",
+  "description": "Detects infrastructure drift between Terraform *.tf declarations and live AWS resources. Produces report.md with Mermaid diagram and drift findings.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sarthak Joshi",
+    "email": "sarthak.joshi@clearroute.io"
+  },
+  "license": "MIT",
+  "keywords": ["terraform", "aws", "drift", "infrastructure", "devops"],
+  "skills": ["terraform-drift-analyzer"]
+}
