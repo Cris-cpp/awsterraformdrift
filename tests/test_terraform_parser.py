@@ -104,3 +104,15 @@ resource "aws_instance" "minimal" {
         # tags is optional and not declared — should be null, not missing
         assert "tags" in instance["config"]
         assert instance["config"]["tags"] is None
+
+    def test_nonexistent_directory_exits(self):
+        with pytest.raises(SystemExit) as exc_info:
+            parse_terraform("/tmp/definitely_does_not_exist_xyz_abc_123")
+        assert exc_info.value.code == 1
+
+    def test_file_path_instead_of_directory_exits(self, tmp_path):
+        f = tmp_path / "notadir.tf"
+        f.write_text('resource "aws_instance" "x" {}')
+        with pytest.raises(SystemExit) as exc_info:
+            parse_terraform(str(f))
+        assert exc_info.value.code == 1

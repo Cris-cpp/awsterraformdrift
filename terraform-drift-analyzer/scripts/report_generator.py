@@ -6,6 +6,17 @@ from datetime import datetime, timezone
 
 WORKSPACE = "./drift-workspace"
 
+_BLOCKED_PREFIXES = ("/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/boot", "/sys", "/proc")
+
+
+def _safe_write_path(path):
+    resolved = os.path.realpath(os.path.abspath(path))
+    for prefix in _BLOCKED_PREFIXES:
+        if resolved.startswith(prefix + os.sep) or resolved == prefix:
+            print(f"ERROR: Refusing to write to system path: {resolved}", file=sys.stderr)
+            sys.exit(1)
+    return resolved
+
 SECTION_LABELS = {
     "aws_instance": "EC2 Instances",
     "aws_s3_bucket": "S3 Buckets",
@@ -30,6 +41,15 @@ STATUS_ICONS = {
     "mismatched": "⚠️",
     "unmanaged": "🔍",
 }
+
+
+def _safe_val(v):
+    """Truncate and strip backticks from config values for safe Markdown display."""
+    s = str(v) if v is not None else "None"
+    s = s.replace("`", "'")  # prevent backtick injection breaking inline code
+    if len(s) > 80:
+        s = s[:80] + "…"
+    return s
 
 
 def _get_field_val(config, field):
@@ -108,7 +128,7 @@ def build_report(diff_json, mmd_content):
                     aws_id = _get_aws_id(f)
                     id_str = f" ({aws_id})" if aws_id else ""
                     drift_details = ", ".join(
-                        f"{field}: declared `{_get_field_val(f.get('declared'), field)}`, actual `{_get_field_val(f.get('actual'), field)}`"
+                        f"{field}: declared `{_safe_val(_get_field_val(f.get('declared'), field))}`, actual `{_safe_val(_get_field_val(f.get('actual'), field))}`"
                         for field in f.get("drift_fields", [])
                     )
                     lines.append(f"- {icon} {name}{id_str} — mismatched ({drift_details})")
@@ -168,12 +188,13 @@ def main():
         print(f"ERROR: Missing or unreadable architecture.mmd: {e}", file=sys.stderr)
         sys.exit(1)
 
+    output_path = _safe_write_path(args.output)
     print("Generating report.md...")
     report = build_report(diff_json, mmd_content)
 
-    with open(args.output, "w") as f:
+    with open(output_path, "w") as f:
         f.write(report)
-    print(f"Written: {args.output}")
+    print(f"Written: {output_path}")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,17 @@ import sys
 
 WORKSPACE = "./drift-workspace"
 
+_BLOCKED_PREFIXES = ("/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/boot", "/sys", "/proc")
+
+
+def _safe_write_path(path):
+    resolved = os.path.realpath(os.path.abspath(path))
+    for prefix in _BLOCKED_PREFIXES:
+        if resolved.startswith(prefix + os.sep) or resolved == prefix:
+            print(f"ERROR: Refusing to write to system path: {resolved}", file=sys.stderr)
+            sys.exit(1)
+    return resolved
+
 COMPARE_FIELDS = {
     "aws_instance": ["instance_type", "ami", "tags"],
     "aws_s3_bucket": ["bucket", "tags"],
@@ -168,8 +179,9 @@ def main():
     print("Comparing declared vs actual resources...")
     result = compare_resources(t_json, a_json)
 
-    os.makedirs(args.workspace, exist_ok=True)
-    diff_path = os.path.join(args.workspace, "diff.json")
+    workspace = _safe_write_path(args.workspace)
+    os.makedirs(workspace, exist_ok=True)
+    diff_path = os.path.join(workspace, "diff.json")
     with open(diff_path, "w") as f:
         json.dump(result, f, indent=2)
 

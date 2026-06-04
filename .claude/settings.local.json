@@ -17,7 +17,8 @@
       "Bash(python3 terraform-drift-analyzer/scripts/terraform_parser.py tests/fixtures/simple)",
       "Bash(python3 /Users/sarthak.joshi/Desktop/files/terraform-drift-analyzer/scripts/drift_detector.py --help)",
       "Bash(echo \"Exit: $?\")",
-      "Bash(python3 /Users/sarthak.joshi/Desktop/files/terraform-drift-analyzer/scripts/report_generator.py --help)"
+      "Bash(python3 /Users/sarthak.joshi/Desktop/files/terraform-drift-analyzer/scripts/report_generator.py --help)",
+      "Bash(git add *)"
     ],
     "additionalDirectories": [
       "/Users/sarthak.joshi/Desktop/files/terraform-drift-analyzer"

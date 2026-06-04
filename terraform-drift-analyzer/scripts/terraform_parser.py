@@ -29,10 +29,17 @@ WORKSPACE = "./drift-workspace"
 
 LIST_FIELDS = {"ingress", "egress", "vpc_security_group_ids", "security_groups", "managed_policy_arns", "cidr_blocks"}
 
+MAX_NORMALIZE_DEPTH = 20
+
 
 def _mermaid_id(res_type, res_name):
     raw = f"{res_type}_{res_name}"
     return re.sub(r'[^a-zA-Z0-9_]', '_', raw)
+
+
+def _mermaid_label(text):
+    # Remove characters that break Mermaid node label syntax
+    return re.sub(r'[\[\]"<>]', '_', str(text))
 
 
 def _strip_quotes(s):
@@ -43,9 +50,17 @@ def _strip_quotes(s):
 
 
 def parse_tf_directory(directory):
-    tf_files = sorted(Path(directory).rglob("*.tf"))
+    input_dir = Path(directory).resolve()
+    if not input_dir.exists():
+        print(f"ERROR: Directory not found: {directory}", file=sys.stderr)
+        sys.exit(1)
+    if not input_dir.is_dir():
+        print(f"ERROR: Not a directory: {directory}", file=sys.stderr)
+        sys.exit(1)
+
+    tf_files = sorted(input_dir.rglob("*.tf"))
     if not tf_files:
-        print(f"ERROR: No .tf files found in {directory}", file=sys.stderr)
+        print(f"ERROR: No .tf files found in {input_dir}", file=sys.stderr)
         sys.exit(1)
 
     resources = []
@@ -111,6 +126,8 @@ def parse_tf_directory(directory):
 
 
 def _normalize_config(config, _depth=0):
+    if _depth > MAX_NORMALIZE_DEPTH:
+        return config
     if not isinstance(config, dict):
         return config
     result = {}
@@ -153,7 +170,7 @@ def generate_mermaid(parsed):
 
     for r in parsed["resources"]:
         node_id = _mermaid_id(r['type'], r['name'])
-        label = f"{short_type.get(r['type'], r['type'])}: {r['name']}"
+        label = _mermaid_label(f"{short_type.get(r['type'], r['type'])}: {r['name']}")
         node_ids[(r["type"], r["name"])] = node_id
         lines.append(f"  {node_id}[{label}]")
 
@@ -189,6 +206,18 @@ def _maybe_add_edge(lines, node_ids, src_id, ref, target_type):
                 return
 
 
+_BLOCKED_PREFIXES = ("/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/boot", "/sys", "/proc")
+
+
+def _safe_write_path(path):
+    resolved = os.path.realpath(os.path.abspath(path))
+    for prefix in _BLOCKED_PREFIXES:
+        if resolved.startswith(prefix + os.sep) or resolved == prefix:
+            print(f"ERROR: Refusing to write to system path: {resolved}", file=sys.stderr)
+            sys.exit(1)
+    return resolved
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Parse Terraform .tf files into T.json and architecture.mmd"
@@ -199,19 +228,20 @@ def main():
     )
     args = parser.parse_args()
 
-    os.makedirs(args.workspace, exist_ok=True)
+    workspace = _safe_write_path(args.workspace)
+    os.makedirs(workspace, exist_ok=True)
 
     print(f"Parsing .tf files in {args.directory}...")
     parsed = parse_tf_directory(args.directory)
 
-    t_json_path = os.path.join(args.workspace, "T.json")
+    t_json_path = os.path.join(workspace, "T.json")
     with open(t_json_path, "w") as f:
         json.dump(parsed, f, indent=2)
     print(
         f"Written: {t_json_path} ({len(parsed['resources'])} resources, {len(parsed['modules'])} modules)"
     )
 
-    mmd_path = os.path.join(args.workspace, "architecture.mmd")
+    mmd_path = os.path.join(workspace, "architecture.mmd")
     mmd = generate_mermaid(parsed)
     with open(mmd_path, "w") as f:
         f.write(mmd)

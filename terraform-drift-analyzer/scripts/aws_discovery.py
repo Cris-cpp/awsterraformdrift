@@ -5,6 +5,17 @@ import sys
 
 WORKSPACE = "./drift-workspace"
 
+_BLOCKED_PREFIXES = ("/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/boot", "/sys", "/proc")
+
+
+def _safe_write_path(path):
+    resolved = os.path.realpath(os.path.abspath(path))
+    for prefix in _BLOCKED_PREFIXES:
+        if resolved.startswith(prefix + os.sep) or resolved == prefix:
+            print(f"ERROR: Refusing to write to system path: {resolved}", file=sys.stderr)
+            sys.exit(1)
+    return resolved
+
 MCP_ACTIONS = {
     "aws_instance": {
         "mcp_action": "describe_instances",
@@ -195,10 +206,11 @@ def main():
             print(f"ERROR: Invalid JSON in {args.mcp_response}: {e}", file=sys.stderr)
             sys.exit(1)
 
-        os.makedirs(args.workspace, exist_ok=True)
+        workspace = _safe_write_path(args.workspace)
+        os.makedirs(workspace, exist_ok=True)
         result = normalize_mcp_response(t_json, mcp_data)
 
-        a_json_path = os.path.join(args.workspace, "A.json")
+        a_json_path = os.path.join(workspace, "A.json")
         with open(a_json_path, "w") as f:
             json.dump(result, f, indent=2)
         print(f"Written: {a_json_path} ({len(result['resources'])} live resources)")
