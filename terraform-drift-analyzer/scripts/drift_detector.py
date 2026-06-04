@@ -91,7 +91,7 @@ def compare_resources(t_json, a_json):
                 "resource_name": a["name"],
                 "status": "unmanaged",
                 "declared": None,
-                "actual": a["config"],
+                "actual": a.get("config", {}),
                 "drift_fields": [],
             })
 
