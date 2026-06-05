@@ -3,7 +3,7 @@
   "description": "Detects infrastructure drift between Terraform *.tf declarations and live AWS resources. Produces report.md with Mermaid diagram and drift findings.",
   "version": "1.0.0",
   "author": {
-    "name": "Sarthak Joshi",
+    "name": "Sarthak Joshi"
     
   },
   "license": "MIT",
