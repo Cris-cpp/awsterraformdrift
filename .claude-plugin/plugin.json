@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "author": {
     "name": "Sarthak Joshi",
-    "email": "sarthak.joshi@clearroute.io"
+    
   },
   "license": "MIT",
   "keywords": ["terraform", "aws", "drift", "infrastructure", "devops"],
   "skills": ["skills/terraform-drift-analyzer"],
-  "repository": "https://github.com/Cris-cpp/marketplace"
+  "repository": "https://github.com/Cris-cpp/awsterraformdrift"
 }
